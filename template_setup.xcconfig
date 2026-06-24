@@ -39,3 +39,16 @@ CONVERSION_OPPORTUNITY_URL = http:/$()/localhost/conversionOpportunity
 WHATS_NEW_GITHUB_URL = http:/$()/localhost/conversionOpportunity
 
 BLINK_APP_FONT = JetBrains Mono
+
+// --- Build compatibility flags for modern Xcode (15+/16+/26) ---
+
+// Export the executable's global symbols so dlsym(RTLD_MAIN_ONLY, ...) can resolve
+// the built-in command entry points (config_main, blink_ssh_main, ...). Required
+// with the newer linker; the original project was built with an older toolchain.
+BLINK_OTHER_LDFLAGS = -Xlinker -export_dynamic
+
+// Xcode 16+ wraps the app code in a "debug dylib" (Blink.debug.dylib) and leaves a
+// thin launcher as the main executable. That breaks dlsym(RTLD_MAIN_ONLY, *_main),
+// because the command symbols end up in the dylib instead of the main executable.
+// Disabling it links everything into the main executable so dlsym finds them again.
+ENABLE_DEBUG_DYLIB = NO
