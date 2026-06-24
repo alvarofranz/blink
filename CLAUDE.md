@@ -69,22 +69,42 @@ upstream files**. Merge pain is proportional to how much shared code you edit.
 - **Add, don't modify.** Put new behavior in **new files/modules**. New files never cause
   merge conflicts.
 - **One-line seams.** Where hooking into upstream code is unavoidable, make it a single
-  line that delegates to a fork module — not a large inline edit. Example for the custom
-  SmartKeys: branch once inside `KBDevice.layoutFor(lang:)`
-  (`Blink/SmarterKeys/KBLayout.swift`) to a new `FranzKeys` file, instead of rewriting
-  `iPhone(lang:)` in place.
+  line that delegates to a fork module — not a large inline edit (see the Blunk seams
+  table below for real examples).
 - Categorize every change: **(a)** generic build/compat fixes → upstream PRs;
   **(b)** personal config → gitignored; **(c)** fork features → new modules behind seams.
 
-## Roadmap / focus
+## Blunk: the input model
 
-Agentic-coding-oriented input:
+Blunk turns the terminal into a **compose-first** agent client. The terminal is a
+read-only transcript; all input goes through Blunk's own UI. All behaviour lives in two
+new, self-contained files plus a handful of tiny seams.
 
-1. Replace the SmartKeys bar (`Blink/SmarterKeys/`) with a few custom buttons (Scratch, …)
-   via the seam above.
-2. Make the fullscreen **Scratch** composer (`BlinkSnippets/` + `Blink/Snippets/`) open
-   with one gesture instead of the menu chain (today: bottom-center double-tap → menu →
-   Snippets, or `Cmd+Shift+.`).
-3. (Later) Image attach for remote agents: upload the photo over sftp/scp and inject its
-   remote path into the prompt — not clipboard simulation, because the agent runs on the
-   remote host and `Ctrl+V` would read the wrong machine's clipboard.
+**New files (this is where the features live):**
+
+- `Blink/Blunky.swift` — the `Blunk` feature flag, **Blunkitor** (the full-screen prose
+  composer: system keyboard + dictation, a command-completion suggestions strip, the Snips
+  gallery, paste), and `BlunkySnipsPicker` (reads/writes `.blink/snippets/<folder>/*.sh`).
+- `Blink/Blunkeys.swift` — **Blunkeys**, the floating round quick-key buttons on the main
+  view that send keys live to the agent/TUI: `⌃` (special), `123`, `abc`, `↕` (arrows),
+  and a standalone `⏎`.
+
+**The seams into upstream (keep these minimal):**
+
+| File | Seam |
+|------|------|
+| `Blink/SmarterKeys/SmarterTermInput.swift` | `becomeFirstResponder()` returns `false` under `Blunk.scratchOnly` → the terminal never shows a keyboard. |
+| `Blink/WebKit/WKWebView.swift` | `_on1fTap` routes a terminal tap to `openBlunkitor` instead of focusing the terminal. |
+| `Blink/SpaceController.swift` | one line `Blunkeys.install(in:)`; plus `canBecomeFirstResponder` + `viewDidAppear` becoming first responder, so chain-dispatched commands (`config`, …) still reach SpaceController while the terminal is keyboard-less. |
+
+Everything is gated by `Blunk.scratchOnly` (in `Blunky.swift`). Set it to `false` to fall
+back to stock Blink input (on-terminal keyboard + SmartKeys bar).
+
+## Ideas / not done yet
+
+- Richer Blunkitor completions (paths/hosts via `Complete._for`, debounced on a background
+  queue). Today it completes Blink **command names** only, and only in command position —
+  and it is local-shell-aware, not remote-agent-aware.
+- Image attach for remote agents: upload the photo over sftp/scp and inject its remote
+  path into the prompt — not clipboard simulation, because the agent runs on the remote
+  host and `Ctrl+V` would read the wrong machine's clipboard.

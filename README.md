@@ -1,3 +1,14 @@
+# Blunk
+
+**Blunk** is a personal fork of Blink Shell focused on **agentic coding from the iPhone**. It keeps all of Blink underneath, but replaces the input model with a compose-first flow:
+
+- The terminal is a read-only transcript. **Tap it to open Blunkitor**, a full-screen composer (system keyboard + dictation, live command-completion suggestions, and a snippet gallery). Write your message or command, hit send, and it reaches the agent with Enter.
+- **Blunkeys** — floating round quick-keys on the main screen — send live keystrokes to the agent/TUI without opening the composer: `⌃` (Esc / Tab / Ctrl-C / Ctrl-D), `123` (digits), `abc` (common letters), `↕` (arrows), and a standalone `⏎`.
+
+Blunk is GPLv3 like Blink, built and run from source on your own device. Build, deploy and architecture notes live in [`CLAUDE.md`](CLAUDE.md). The original Blink README follows.
+
+---
+
 # Blink Shell for iOS
 Do Blink! [Blink](https://blink.sh) is the first professional, desktop-grade terminal for iOS that leverages the support of Mosh and SSH. Thus, we can unequivocally guarantee stable connections, lightning-fast speeds, and full configurations. It can and should be your all-day-long tool.
 
