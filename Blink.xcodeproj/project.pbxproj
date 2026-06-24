@@ -374,6 +374,8 @@
 		D27D01272615F1BD00128C23 /* developer_setup.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = D27D01232615F1BD00128C23 /* developer_setup.xcconfig */; };
 		D27DD70A2A3B203F009E97BC /* NewSnippetViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27DD7092A3B203F009E97BC /* NewSnippetViewController.swift */; };
 		D2887A5622DC676F00701BD5 /* SpaceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2887A5522DC676F00701BD5 /* SpaceController.swift */; };
+		B1EE0000000000000000B17D /* Blunkeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1EE0000000000000000F11E /* Blunkeys.swift */; };
+		B102C0DE000000000000B17D /* Blunky.swift in Sources */ = {isa = PBXBuildFile; fileRef = B102C0DE000000000000F11E /* Blunky.swift */; };
 		D2887A5E22DCA6D500701BD5 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2887A5D22DCA6D500701BD5 /* SceneDelegate.swift */; };
 		D28B0337243EF5F2008F38F6 /* Set+UIScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28B0336243EF5F2008F38F6 /* Set+UIScene.swift */; };
 		D28C357626A56DDF00202C4D /* FileProviderDomain.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28C357526A56DDE00202C4D /* FileProviderDomain.swift */; };
@@ -1133,6 +1135,8 @@
 		D27D01232615F1BD00128C23 /* developer_setup.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = developer_setup.xcconfig; sourceTree = "<group>"; };
 		D27DD7092A3B203F009E97BC /* NewSnippetViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSnippetViewController.swift; sourceTree = "<group>"; };
 		D2887A5522DC676F00701BD5 /* SpaceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceController.swift; sourceTree = "<group>"; };
+		B1EE0000000000000000F11E /* Blunkeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Blunkeys.swift; sourceTree = "<group>"; };
+		B102C0DE000000000000F11E /* Blunky.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Blunky.swift; sourceTree = "<group>"; };
 		D2887A5D22DCA6D500701BD5 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		D28B0336243EF5F2008F38F6 /* Set+UIScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Set+UIScene.swift"; sourceTree = "<group>"; };
 		D28C357526A56DDE00202C4D /* FileProviderDomain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileProviderDomain.swift; sourceTree = "<group>"; };
@@ -1492,6 +1496,8 @@
 				D235579622CE07D20094AADB /* Blink-bridge.h */,
 				D2AD9ADD22DB80DE00861F66 /* SessionRegistry.swift */,
 				D2887A5522DC676F00701BD5 /* SpaceController.swift */,
+				B1EE0000000000000000F11E /* Blunkeys.swift */,
+				B102C0DE000000000000F11E /* Blunky.swift */,
 				D2887A5D22DCA6D500701BD5 /* SceneDelegate.swift */,
 				D248E67522DDDF130057FE67 /* UIStateRestorable.swift */,
 				D2BC514C2355C3AE0034FDD4 /* History.swift */,
@@ -3635,6 +3641,8 @@
 				D22277FA2A26204900D4C708 /* SearchModel.swift in Sources */,
 				D2C24416238E44AB0082C69C /* KBConfig.swift in Sources */,
 				D2887A5622DC676F00701BD5 /* SpaceController.swift in Sources */,
+				B1EE0000000000000000B17D /* Blunkeys.swift in Sources */,
+				B102C0DE000000000000B17D /* Blunky.swift in Sources */,
 				D2AC6749220303D900177BC5 /* openurl.m in Sources */,
 				D27DD70A2A3B203F009E97BC /* NewSnippetViewController.swift in Sources */,
 				D25DE9C02939EB36008246EB /* NonStdIO.swift in Sources */,

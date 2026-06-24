@@ -127,6 +127,12 @@ class SpaceController: UIViewController {
   
   public override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
+
+    // Blunk: keep the strip behind the floating Blunkeys the same colour as the terminal,
+    // so the bottom padding blends in instead of showing a black band.
+    if Blunk.scratchOnly, let termBg = currentTerm()?.termView.backgroundColor, termBg != .clear {
+      view.backgroundColor = termBg
+    }
     
     guard let window = view.window
     else {
@@ -174,9 +180,17 @@ class SpaceController: UIViewController {
     }
   }
   
+  override var canBecomeFirstResponder: Bool {
+    Blunk.scratchOnly ? true : super.canBecomeFirstResponder
+  }
+
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
-    
+
+    // Blunk: be the first responder so chain-dispatched command actions (config, etc.)
+    // still reach SpaceController even though the terminal is keyboard-less.
+    if Blunk.scratchOnly { becomeFirstResponder() }
+
     #if targetEnvironment(macCatalyst)
     guard let appBundleUrl = Bundle.main.builtInPlugInsURL else {
       return
@@ -244,10 +258,23 @@ class SpaceController: UIViewController {
     addChild(_viewportsController)
     
     if let v = _viewportsController.view {
-      v.autoresizingMask = [.flexibleWidth, .flexibleHeight]
       v.layoutMargins = .zero
-      v.frame = view.bounds
-      view.addSubview(v)
+      if Blunk.scratchOnly {
+        // Blunk: leave room at the bottom for the floating Blunkeys, so terminal text
+        // isn't hidden behind the quick-key buttons.
+        v.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(v)
+        NSLayoutConstraint.activate([
+          v.topAnchor.constraint(equalTo: view.topAnchor),
+          v.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+          v.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+          v.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -56),
+        ])
+      } else {
+        v.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        v.frame = view.bounds
+        view.addSubview(v)
+      }
     }
     
     _viewportsController.didMove(toParent: self)
@@ -275,6 +302,9 @@ class SpaceController: UIViewController {
     doubleTap.numberOfTapsRequired = 2
     doubleTap.numberOfTouchesRequired = 1
     _bottomTapAreaView.addGestureRecognizer(doubleTap)
+
+    // Blunk: floating Blunkeys quick-keys (special keys / numbers / letters).
+    Blunkeys.install(in: self)
     
     NotificationCenter.default.addObserver(self, selector: #selector(_geoTrackStateChanged), name: NSNotification.Name.BLGeoTrackStateChange, object: nil)
     

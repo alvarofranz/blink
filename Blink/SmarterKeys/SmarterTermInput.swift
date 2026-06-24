@@ -137,6 +137,10 @@ import Combine
   }
   
   override func becomeFirstResponder() -> Bool {
+    // Blunk: the terminal never takes the keyboard — all input goes through Blunky.
+    if Blunk.scratchOnly {
+      return false
+    }
     // Don't become first responder if blocked (e.g., during Snips Input Mode)
     if device?.shouldBlockFirstResponder == true {
       return false
