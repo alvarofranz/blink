@@ -2,11 +2,11 @@
 
 ### 📱🤖 The iPhone terminal for **remote agentic coding.**
 
-Your AI agent — Claude Code, say — runs on a real machine somewhere: a server, a VM, the beefy desktop back home. **Blunk is the comfiest way to reach it over SSH/Mosh and drive it from your phone.** Kick off a run on the train, approve a diff from the couch, fix the typo in your prompt while the coffee brews.
+Let your AI agent run on a real machine somewhere: a server, a VM, the beefy desktop back home and use **Blunk to talk with from your phone.** Kick off a run while you are on a hike, approve a diff while having a beer somewhere or let your creativity flow into a proper editor that doesn't get in your way.
 
-It's a fork of [Blink Shell](https://blink.sh), built to scratch a specific itch: I wanted **room to write calmly** without my message getting buried in the scrollback, **voice dictation** that actually works for handing an agent instructions, a **minimalist interface** with nothing I'll never touch, and a **gallery of quick snippets** to hop onto my servers and run maintenance. So Blunk rethinks the one thing a desktop terminal never had to worry about: *typing a lot — comfortably — to an agent living in a `tmux` pane somewhere.* No more texting your AI with oven mitts on. 🧤
+Blunk is a fork of [Blink Shell](https://blink.sh), built to scratch a specific itch: I wanted **room to write calmly** without my message getting buried in the scrollback, a **minimalist interface** with nothing I'll never touch, and a seamlessly integrated **gallery of quick snippets** to hop onto my servers and run maintenance.
 
-> 💙 **All love to the [Blink](https://blink.sh) team.** Blink is a superb, full-featured terminal, and every bit of it is still here under Blunk — none of this would exist without their work. This fork isn't out to compete with Blink or replace it; it's just a more opinionated, agentic-coding-first take on the input side. If you want the real, complete deal, go grab Blink and support the folks who built it. 🙌
+Blunk rethinks the one thing a desktop terminal never had to worry about: *typing a lot — comfortably — to an agent living in a `tmux` pane somewhere.*
 
 <table>
 <tr>
@@ -25,17 +25,17 @@ It's a fork of [Blink Shell](https://blink.sh), built to scratch a specific itch
 
 ## Why Blunk?
 
-A stock terminal hands you a tiny keyboard under an 80-column wall of text and wishes you luck. That's fine for a quick `git pull`. It's misery for telling an agent, in three thoughtful paragraphs, exactly what you want — and then fixing the typo in the middle. So Blunk flips the input model:
+A stock terminal hands you a tiny keyboard under a wall of text and wishes you luck. That's fine for a quick `git pull`. It's misery for telling an agent, in three thoughtful paragraphs, exactly what you want... and then fixing the typo in the middle. So Blunk flips the input model:
 
 - **A real composer, not a cramped prompt line.** Tap `✎` for **Blunkitor**, a full-screen editor with room to *think*: write long prompts, dictate them, scroll back and fix a word without rage-tapping. Send to the agent with one tap or `Ctrl+Enter`. The terminal itself stays a clean, read-only transcript you can scroll and copy from.
 - **Common keys, one tap away.** **Blunkeys** are floating round quick-keys that fire *live* to the TUI — `Esc`, `Tab`, `Ctrl-C` and the rest of the readline keys agents love, plus digits, letters, and a proper circular arrow d-pad. No spelunking through submenus for `Esc` while your agent waits.
 - **Live command completion**, so `--dangerously-skip-permissions` is a tap, not a spelling test.
 - **Snippets in tidy folders.** Stash the incantations you always retype (`ssh -t box 'claude …'`) and drop them into the composer instantly.
-- **Bring your own Bluetooth keyboard.** A single keystroke goes straight to the agent (so TUIs can react to `y`/`n`); start typing a word and Blunk hands off to the composer on its own.
+- **Bring your own Bluetooth keyboard.** A single keystroke goes straight to the agent (so TUIs can react to `y`/`n`). Start typing a word and Blunk hands off to the composer on its own.
 
-It's still Blink under the hood — Mosh's rock-solid always-on connection, SSH, hterm rendering, your keys and hosts, untouched. Blunk only swaps the input model, behind a single flag (`Blunk.scratchOnly`); flip it off and you're back to stock Blink.
+Build, deploy and architecture notes live in [`CLAUDE.md`](CLAUDE.md). 
 
-Built and run from source on my own device — GPLv3, same as Blink. Build, deploy and architecture notes live in [`CLAUDE.md`](CLAUDE.md). The original Blink README follows.
+> 💙 **All love to the [Blink](https://blink.sh) team.** Blink is a superb, full-featured terminal, and every bit of it is still here under Blunk — none of this would exist without their work. This fork isn't out to compete with Blink or replace it. It's just a more opinionated, agentic-coding-first take on the input side. If you want the real, complete deal, go grab Blink and support the folks who built it. The original Blink README follows.
 
 ---
 
