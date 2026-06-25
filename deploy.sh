@@ -20,7 +20,7 @@ BUNDLE_ID="com.alvarofranz.blink"
 APP_PATH="build/Build/Products/Debug-iphoneos/Blink.app"
 
 DEVICE_ID="${BLINK_DEVICE_ID:-$(xcrun devicectl list devices 2>/dev/null \
-  | grep -i ' connected ' \
+  | grep -iE 'connected|available' | grep -ivE 'unavailable' \
   | grep -oE '[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}' \
   | head -1)}"
 
