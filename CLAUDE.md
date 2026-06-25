@@ -1,8 +1,12 @@
 # blunk
 
-Personal fork of [Blink Shell](https://github.com/blinksh/blink) (an open-source iOS
-terminal), focused on **agentic coding from the iPhone**. The on-device app is still
-named "Blink"; only the GitHub repo (`blunk`) and this project's direction are customized.
+A fork of [Blink Shell](https://github.com/blinksh/blink) (an open-source iOS terminal),
+focused on **remote agentic coding from the iPhone** — driving an AI agent (e.g. Claude
+Code) that runs on a remote machine over SSH/Mosh. The goal isn't to compete with Blink
+(all of Blink stays underneath) but to offer a more agentic-coding-oriented, minimal,
+easy-to-use input layer: room to write, voice dictation, quick keys, and a snippet gallery
+for hopping onto servers. The on-device app is still named "Blink"; only the GitHub repo
+(`blunk`) and this project's direction are customized.
 
 - Origin: `alvarofranz/blunk`  ·  Upstream: `blinksh/blink`
 - Working branch: `raw`  ·  Bundle id: `com.alvarofranz.blink`
@@ -76,26 +80,29 @@ upstream files**. Merge pain is proportional to how much shared code you edit.
 
 ## Blunk: the input model
 
-Blunk turns the terminal into a **compose-first** agent client. The terminal is a
-read-only transcript; all input goes through Blunk's own UI. All behaviour lives in two
-new, self-contained files plus a handful of tiny seams.
+Blunk turns the terminal into a **compose-first** agent client. The terminal stays a
+read-only transcript (taps still select/copy); all typing goes through Blunk's own UI. All
+behaviour lives in two new, self-contained files plus two tiny seams.
 
 **New files (this is where the features live):**
 
-- `Blink/Blunky.swift` — the `Blunk` feature flag, **Blunkitor** (the full-screen prose
-  composer: system keyboard + dictation, a command-completion suggestions strip, the Snips
-  gallery, paste), and `BlunkySnipsPicker` (reads/writes `.blink/snippets/<folder>/*.sh`).
-- `Blink/Blunkeys.swift` — **Blunkeys**, the floating round quick-key buttons on the main
-  view that send keys live to the agent/TUI: `⌃` (special), `123`, `abc`, `↕` (arrows),
-  and a standalone `⏎`.
+- `Blink/Blunky.swift` — the `Blunk` feature flag; **Blunkitor** (the full-screen composer:
+  system keyboard + dictation, a control bar docked above the keyboard, a command-completion
+  suggestions strip, an unsent draft that survives closing, Ctrl+Enter to send); the Snips
+  gallery + editor (`BlunkySnipsPicker` / `BlunkySnipEditor`, accordion over one-level
+  `.blink/snippets`, matching upstream); and `BlunkKeyboard`, which routes hardware-keyboard
+  input (a probe keystroke goes live to the agent, then typing opens Blunkitor).
+- `Blink/Blunkeys.swift` — **Blunkeys**, the floating round buttons on the main view: a left
+  cluster of `⌃` / `123` / `abc` / `↕` pads (keys go live to the agent/TUI) plus `⏎`, and a
+  separate, larger `✎` button on the right that opens Blunkitor. `blunkeyRoundButton` is the
+  shared house style, also reused by the Blunkitor control bar.
 
 **The seams into upstream (keep these minimal):**
 
 | File | Seam |
 |------|------|
 | `Blink/SmarterKeys/SmarterTermInput.swift` | `becomeFirstResponder()` returns `false` under `Blunk.scratchOnly` → the terminal never shows a keyboard. |
-| `Blink/WebKit/WKWebView.swift` | `_on1fTap` routes a terminal tap to `openBlunkitor` instead of focusing the terminal. |
-| `Blink/SpaceController.swift` | one line `Blunkeys.install(in:)`; plus `canBecomeFirstResponder` + `viewDidAppear` becoming first responder, so chain-dispatched commands (`config`, …) still reach SpaceController while the terminal is keyboard-less. |
+| `Blink/SpaceController.swift` | `Blunkeys.install(in:)`; `canBecomeFirstResponder` + `viewDidAppear` become first responder (so chain-dispatched commands like `config` keep working while keyboard-less); `pressesBegan` hands hardware-keyboard input to `BlunkKeyboard`. |
 
 Everything is gated by `Blunk.scratchOnly` (in `Blunky.swift`). Set it to `false` to fall
 back to stock Blink input (on-terminal keyboard + SmartKeys bar).
