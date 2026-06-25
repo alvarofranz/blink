@@ -2,7 +2,7 @@
 
 ### 📱🤖 The iPhone terminal for **remote agentic coding.**
 
-Let your AI agent run on a real machine somewhere: a server, a VM, the beefy desktop back home and use **Blunk to talk with from your phone.** Kick off a run while you are on a hike, approve a diff while having a beer somewhere or let your creativity flow into a proper editor that doesn't get in your way.
+Let your AI agent run on a real machine somewhere: a server, a VM, the beefy desktop back home and use **Blunk to talk with it from your phone.** Kick off a run while you are on a hike, approve a diff while having a beer somewhere or let your creativity flow into a proper editor that doesn't get in your way.
 
 Blunk is a fork of [Blink Shell](https://blink.sh), built to scratch a specific itch: I wanted **room to write calmly** without my message getting buried in the scrollback, a **minimalist interface** with nothing I'll never touch, and a seamlessly integrated **gallery of quick snippets** to hop onto my servers and run maintenance.
 
