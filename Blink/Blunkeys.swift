@@ -2,15 +2,15 @@
 //
 // B L U N K E Y S
 //
-// Floating round buttons on the main terminal view. Each fires keys LIVE to the
-// agent/TUI on tap — no composer, no select.
+// Floating round buttons on the main terminal view. Tapping one pops a clean centered
+// pad of real key buttons; each key fires LIVE to the agent/TUI on tap.
 //
-//   bottom-left:  ⌃ (special)  123 (numbers)  abc (letters)  ↕ (arrows)
-//   bottom-right: ⏎ (direct Enter, on its own)
+//   bottom-left:  ⌃ (special)  123 (numbers)  abc (letters)  ↕ (arrows)  ⏎ (direct Enter)
+//   bottom-right: ✎ (a larger button that opens Blunkitor)
 //
-// ⌃/123/abc pop a clean pad and auto-close after one key. ↕ stays open for repeated
-// arrows; close it by tapping ↕ again or tapping outside. A tap outside an open pad
-// only dismisses it — it never opens the composer (see SpaceController.openBlunkitor).
+// ⌃/123/abc auto-close after a key; the arrows d-pad stays open for repeated presses.
+// While a pad is open, a transparent overlay dismisses it when the terminal is tapped.
+// A plain terminal tap is otherwise left to Blink, so select/copy keeps working.
 //
 // Fully additive: installed with one line in SpaceController.viewDidLoad.
 //
@@ -27,40 +27,43 @@ enum Blunkeys {
     bar.translatesAutoresizingMaskIntoConstraints = false
     sc.view.addSubview(bar)
 
-    // Standalone Enter — bottom-right, on its own.
-    let enter = blunkeyRoundButton()
-    enter.setTitle("⏎", for: .normal)
-    enter.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
-    enter.translatesAutoresizingMaskIntoConstraints = false
-    enter.addAction(UIAction { [weak sc] _ in sc?.currentDevice?.write("\r") }, for: .touchUpInside)
-    sc.view.addSubview(enter)
+    // Standalone, larger compose button — bottom-right, on its own.
+    let compose = blunkeyRoundButton(diameter: 68)
+    compose.setImage(UIImage(systemName: "square.and.pencil"), for: .normal)
+    compose.setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 24), forImageIn: .normal)
+    compose.translatesAutoresizingMaskIntoConstraints = false
+    compose.addAction(UIAction { [weak sc] _ in sc?.openBlunkitor() }, for: .touchUpInside)
+    sc.view.addSubview(compose)
+
+    bar.chrome = [compose]   // kept tappable above the dismiss overlay
 
     NSLayoutConstraint.activate([
       bar.leadingAnchor.constraint(equalTo: sc.view.safeAreaLayoutGuide.leadingAnchor, constant: 14),
       bar.bottomAnchor.constraint(equalTo: sc.view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
-      enter.trailingAnchor.constraint(equalTo: sc.view.safeAreaLayoutGuide.trailingAnchor, constant: -14),
-      enter.bottomAnchor.constraint(equalTo: sc.view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
+      compose.trailingAnchor.constraint(equalTo: sc.view.safeAreaLayoutGuide.trailingAnchor, constant: -14),
+      compose.bottomAnchor.constraint(equalTo: sc.view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
     ])
     sc.view.bringSubviewToFront(bar)
-    sc.view.bringSubviewToFront(enter)
+    sc.view.bringSubviewToFront(compose)
   }
 }
 
-// Shared style for the floating round buttons.
-private func blunkeyRoundButton() -> UIButton {
+// Shared style for the floating round buttons — the Blunk house style, reused by the
+// Blunkitor control bar so everything matches.
+func blunkeyRoundButton(diameter: CGFloat = 42) -> UIButton {
   let b = UIButton(type: .system)
   b.tintColor = UIColor(white: 0.12, alpha: 1)
   b.setTitleColor(UIColor(white: 0.12, alpha: 1), for: .normal)
   b.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
   b.backgroundColor = UIColor(white: 0.97, alpha: 0.92)
-  b.layer.cornerRadius = 21
+  b.layer.cornerRadius = diameter / 2
   b.layer.shadowColor = UIColor.black.cgColor
   b.layer.shadowOpacity = 0.18
   b.layer.shadowRadius = 4
   b.layer.shadowOffset = CGSize(width: 0, height: 1)
   b.translatesAutoresizingMaskIntoConstraints = false
-  b.widthAnchor.constraint(equalToConstant: 42).isActive = true
-  b.heightAnchor.constraint(equalToConstant: 42).isActive = true
+  b.widthAnchor.constraint(equalToConstant: diameter).isActive = true
+  b.heightAnchor.constraint(equalToConstant: diameter).isActive = true
   return b
 }
 
@@ -68,38 +71,37 @@ final class BlunkeysBar: UIStackView {
 
   enum Kind { case special, numbers, letters, arrows }
 
+  // Sibling Blunkeys views (e.g. Enter) to keep above the dismiss overlay.
+  var chrome: [UIView] = []
+
   private weak var spaceController: SpaceController?
   private let pad = BlunkeysPad()
-  private var shownKind: Kind? = nil
+  private let overlay = UIView()
+  private var shownKind: Kind?
 
   init(spaceController: SpaceController) {
     self.spaceController = spaceController
     super.init(frame: .zero)
-    axis = .vertical
+    axis = .horizontal
     spacing = 10
-    alignment = .leading
+    alignment = .center
 
     pad.isHidden = true
     pad.onKey = { [weak self] bytes in
       guard let self else { return }
-      self._send(bytes)
+      self.spaceController?.currentDevice?.write(bytes)
       if self.shownKind != .arrows { self._closePad() }   // arrows stays open
     }
-    addArrangedSubview(pad)
 
-    let row = UIStackView()
-    row.axis = .horizontal
-    row.spacing = 10
-    row.addArrangedSubview(_padButton(.special, title: "⌃", systemImage: nil))
-    row.addArrangedSubview(_padButton(.numbers, title: "123", systemImage: nil))
-    row.addArrangedSubview(_padButton(.letters, title: "abc", systemImage: nil))
-    row.addArrangedSubview(_padButton(.arrows, title: "↕", systemImage: "dpad"))
-    addArrangedSubview(row)
+    addArrangedSubview(_padButton(.special, title: "⌃", systemImage: nil))
+    addArrangedSubview(_padButton(.numbers, title: "123", systemImage: nil))
+    addArrangedSubview(_padButton(.letters, title: "abc", systemImage: nil))
+    addArrangedSubview(_padButton(.arrows, title: "↕", systemImage: "dpad"))
+    addArrangedSubview(_enterButton())
   }
 
   required init(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-  // Called from openBlunkitor: if a pad is open, a terminal tap should only close it.
   @discardableResult
   func closeIfOpen() -> Bool {
     guard shownKind != nil else { return false }
@@ -118,59 +120,107 @@ final class BlunkeysBar: UIStackView {
     return b
   }
 
+  private func _enterButton() -> UIButton {
+    let b = blunkeyRoundButton()
+    b.setTitle("⏎", for: .normal)
+    b.titleLabel?.font = .systemFont(ofSize: 18, weight: .semibold)
+    b.addAction(UIAction { [weak self] _ in self?.spaceController?.currentDevice?.write("\r") }, for: .touchUpInside)
+    return b
+  }
+
   private func _toggle(_ kind: Kind) {
     if shownKind == kind { _closePad() } else { _showPad(kind) }
   }
 
+  // The pad floats centered in the viewport, a comfortable gap above the buttons. A
+  // transparent overlay behind it dismisses the pad when the terminal is tapped.
+  private func _installPad() {
+    guard pad.superview == nil, let sv = superview else { return }
+
+    overlay.translatesAutoresizingMaskIntoConstraints = false
+    overlay.backgroundColor = .clear
+    overlay.isHidden = true
+    overlay.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(_overlayTapped)))
+    sv.addSubview(overlay)
+
+    pad.translatesAutoresizingMaskIntoConstraints = false
+    sv.addSubview(pad)
+
+    NSLayoutConstraint.activate([
+      overlay.topAnchor.constraint(equalTo: sv.topAnchor),
+      overlay.leadingAnchor.constraint(equalTo: sv.leadingAnchor),
+      overlay.trailingAnchor.constraint(equalTo: sv.trailingAnchor),
+      overlay.bottomAnchor.constraint(equalTo: sv.bottomAnchor),
+
+      pad.centerXAnchor.constraint(equalTo: sv.centerXAnchor),
+      pad.bottomAnchor.constraint(equalTo: topAnchor, constant: -64),
+    ])
+  }
+
   private func _showPad(_ kind: Kind) {
+    _installPad()
     shownKind = kind
-    pad.configure(rows: Self._rows(for: kind))
+    if kind == .arrows { pad.configureArrows() }
+    else { pad.configure(rows: Self._rows(for: kind), round: false) }
+    overlay.isHidden = false
     pad.isHidden = false
+    if let sv = superview {
+      sv.bringSubviewToFront(overlay)
+      chrome.forEach { sv.bringSubviewToFront($0) }
+      sv.bringSubviewToFront(self)
+      sv.bringSubviewToFront(pad)
+    }
   }
 
   private func _closePad() {
     shownKind = nil
     pad.isHidden = true
+    overlay.isHidden = true
   }
 
-  private func _send(_ bytes: String) {
-    spaceController?.currentDevice?.write(bytes)
-  }
+  @objc private func _overlayTapped() { _closePad() }
 
-  private static func _rows(for kind: Kind) -> [[(String, String)]] {
+  private static func _rows(for kind: Kind) -> [[(String, String)?]] {
     switch kind {
-    case .special:
-      return [
-        [("Esc", "\u{1B}"), ("Tab", "\t")],
-        [("⌃C", "\u{03}"), ("⌃D", "\u{04}")],
-      ]
     case .numbers:
       return [
-        [("1", "1"), ("2", "2"), ("3", "3")],
-        [("4", "4"), ("5", "5"), ("6", "6")],
-        [("7", "7"), ("8", "8"), ("9", "9")],
-        [("0", "0")],
+        [("0", "0"), ("1", "1"), ("2", "2"), ("3", "3"), ("4", "4")],
+        [("5", "5"), ("6", "6"), ("7", "7"), ("8", "8"), ("9", "9")],
       ]
     case .letters:
       return [
-        [("y", "y"), ("n", "n"), ("a", "a")],
-        [("c", "c"), ("q", "q"), ("d", "d")],
-        [("e", "e"), ("s", "s"), ("p", "p")],
+        [("y", "y"), ("n", "n"), ("a", "a"), ("c", "c")],
+        [("d", "d"), ("e", "e"), ("q", "q"), ("s", "s")],
+        [("p", "p"), ("r", "r"), ("o", "o"), ("k", "k")],
+        [("l", "l"), ("v", "v"), ("h", "h"), ("m", "m")],
+      ]
+    case .special:
+      return [
+        [("Esc", "\u{1B}"), ("Tab", "\t"), ("^Y", "\u{19}"), ("^C", "\u{03}")],
+        [("^D", "\u{04}"), ("^Z", "\u{1A}"), ("^L", "\u{0C}"), ("^R", "\u{12}")],
+        [("^A", "\u{01}"), ("^E", "\u{05}"), ("^K", "\u{0B}"), ("^U", "\u{15}")],
+        [("^W", "\u{17}"), ("^P", "\u{10}"), ("^N", "\u{0E}"), ("⌫", "\u{7F}")],
       ]
     case .arrows:
       return [
-        [("←", "\u{1B}[D"), ("↑", "\u{1B}[A"), ("↓", "\u{1B}[B"), ("→", "\u{1B}[C")],
+        [nil, ("↑", "\u{1B}[A"), nil],
+        [("←", "\u{1B}[D"), nil, ("→", "\u{1B}[C")],
+        [nil, ("↓", "\u{1B}[B"), nil],
       ]
     }
   }
 }
 
-// A clean elegant box holding a grid of real key buttons. Each fires onKey live.
+// A clean box of real key buttons; each fires onKey live. Grids (numbers/letters/special)
+// use a rounded-rect box; the arrows use a circular box with a tight d-pad cross.
 final class BlunkeysPad: UIView {
 
   var onKey: ((String) -> Void)?
 
   private let rowsStack = UIStackView()
+  private var extras: [UIView] = []
+  private var sizeConstraints: [NSLayoutConstraint] = []
+  private var isCircular = false
 
   init() {
     super.init(frame: .zero)
@@ -183,7 +233,7 @@ final class BlunkeysPad: UIView {
 
     rowsStack.axis = .vertical
     rowsStack.spacing = 8
-    rowsStack.alignment = .leading
+    rowsStack.alignment = .center
     rowsStack.translatesAutoresizingMaskIntoConstraints = false
     addSubview(rowsStack)
     NSLayoutConstraint.activate([
@@ -196,32 +246,92 @@ final class BlunkeysPad: UIView {
 
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-  func configure(rows: [[(String, String)]]) {
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    if isCircular { layer.cornerRadius = min(bounds.width, bounds.height) / 2 }
+  }
+
+  private func _reset() {
     rowsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+    extras.forEach { $0.removeFromSuperview() }
+    extras = []
+    NSLayoutConstraint.deactivate(sizeConstraints)
+    sizeConstraints = []
+  }
+
+  // Grid layout (rounded-rect box). `nil` cells are invisible spacers.
+  func configure(rows: [[(String, String)?]], round: Bool) {
+    _reset()
+    isCircular = false
+    layer.cornerRadius = 18
+    rowsStack.isHidden = false
     for row in rows {
       let rowStack = UIStackView()
       rowStack.axis = .horizontal
       rowStack.spacing = 8
-      for (label, bytes) in row {
-        rowStack.addArrangedSubview(_key(label, bytes))
+      for cell in row {
+        if let cell { rowStack.addArrangedSubview(_key(cell.0, cell.1, round: round)) }
+        else { rowStack.addArrangedSubview(_spacer()) }
       }
       rowsStack.addArrangedSubview(rowStack)
     }
+    setNeedsLayout()
   }
 
-  private func _key(_ label: String, _ bytes: String) -> UIButton {
+  // Circular d-pad: four round arrows clustered tightly around the centre.
+  func configureArrows() {
+    _reset()
+    isCircular = true
+    rowsStack.isHidden = true
+
+    let r: CGFloat = 40
+    let up = _key("↑", "\u{1B}[A", round: true)
+    let down = _key("↓", "\u{1B}[B", round: true)
+    let left = _key("←", "\u{1B}[D", round: true)
+    let right = _key("→", "\u{1B}[C", round: true)
+    [up, down, left, right].forEach { addSubview($0); extras.append($0) }
+
+    NSLayoutConstraint.activate([
+      up.centerXAnchor.constraint(equalTo: centerXAnchor),
+      up.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -r),
+      down.centerXAnchor.constraint(equalTo: centerXAnchor),
+      down.centerYAnchor.constraint(equalTo: centerYAnchor, constant: r),
+      left.centerYAnchor.constraint(equalTo: centerYAnchor),
+      left.centerXAnchor.constraint(equalTo: centerXAnchor, constant: -r),
+      right.centerYAnchor.constraint(equalTo: centerYAnchor),
+      right.centerXAnchor.constraint(equalTo: centerXAnchor, constant: r),
+    ])
+    sizeConstraints = [
+      widthAnchor.constraint(equalToConstant: 140),
+      heightAnchor.constraint(equalToConstant: 140),
+    ]
+    NSLayoutConstraint.activate(sizeConstraints)
+    setNeedsLayout()
+  }
+
+  private func _key(_ label: String, _ bytes: String, round: Bool) -> UIButton {
     let b = UIButton(type: .system)
     b.setTitle(label, for: .normal)
     b.titleLabel?.font = .systemFont(ofSize: 17, weight: .medium)
+    b.titleLabel?.adjustsFontSizeToFitWidth = true
+    b.titleLabel?.minimumScaleFactor = 0.6
     b.setTitleColor(UIColor(white: 0.1, alpha: 1), for: .normal)
     b.backgroundColor = .white
-    b.layer.cornerRadius = 10
+    b.layer.cornerRadius = round ? 23 : 10
     b.layer.borderWidth = 0.5
     b.layer.borderColor = UIColor(white: 0.82, alpha: 1).cgColor
-    b.contentEdgeInsets = UIEdgeInsets(top: 10, left: 14, bottom: 10, right: 14)
-    b.widthAnchor.constraint(greaterThanOrEqualToConstant: 46).isActive = true
+    b.translatesAutoresizingMaskIntoConstraints = false
+    b.widthAnchor.constraint(equalToConstant: 46).isActive = true
     b.heightAnchor.constraint(equalToConstant: 46).isActive = true
     b.addAction(UIAction { [weak self] _ in self?.onKey?(bytes) }, for: .touchUpInside)
     return b
+  }
+
+  private func _spacer() -> UIView {
+    let v = UIView()
+    v.translatesAutoresizingMaskIntoConstraints = false
+    v.widthAnchor.constraint(equalToConstant: 46).isActive = true
+    v.heightAnchor.constraint(equalToConstant: 46).isActive = true
+    return v
   }
 }

@@ -286,10 +286,8 @@ class UIScrollViewWithoutHitTest: UIScrollView {
       }
 
       if !_cmdKeyPressed && !wasInDragMode {
-        // Blunk: a tap on the terminal opens the Blunky composer instead of focusing it.
-        let tapSel = Blunk.scratchOnly ? NSSelectorFromString("openBlunkitor") : #selector(focusOnShellAction)
-        if let target = _wkWebView?.target(forAction: tapSel, withSender: self) as? UIResponder {
-          target.perform(tapSel, with: self)
+        if let target = _wkWebView?.target(forAction: #selector(focusOnShellAction), withSender: self) as? UIResponder {
+          target.perform(#selector(focusOnShellAction), with: self)
         }
       }
     default: break

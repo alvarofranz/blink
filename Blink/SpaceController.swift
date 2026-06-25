@@ -184,6 +184,16 @@ class SpaceController: UIViewController {
     Blunk.scratchOnly ? true : super.canBecomeFirstResponder
   }
 
+  override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+    // Blunk: route hardware-keyboard input — a probe keystroke goes live to the agent,
+    // typing more opens Blunkitor seeded with what's been typed.
+    if Blunk.scratchOnly, presentedViewController == nil,
+       BlunkKeyboard.handle(presses, device: currentDevice, openComposer: { [weak self] seed in self?.openBlunkitor(seed: seed) }) {
+      return
+    }
+    super.pressesBegan(presses, with: event)
+  }
+
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
 
