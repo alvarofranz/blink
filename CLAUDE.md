@@ -82,7 +82,7 @@ upstream files**. Merge pain is proportional to how much shared code you edit.
 
 Blunk turns the terminal into a **compose-first** agent client. The terminal stays a
 read-only transcript (taps still select/copy); all typing goes through Blunk's own UI. All
-behaviour lives in two new, self-contained files plus two tiny seams.
+behaviour lives in two new, self-contained files plus a few tiny seams.
 
 **New files (this is where the features live):**
 
@@ -90,8 +90,13 @@ behaviour lives in two new, self-contained files plus two tiny seams.
   system keyboard + dictation, a control bar docked above the keyboard, a command-completion
   suggestions strip, an unsent draft that survives closing, Ctrl+Enter to send); the Snips
   gallery + editor (`BlunkySnipsPicker` / `BlunkySnipEditor`, accordion over one-level
-  `.blink/snippets`, matching upstream); and `BlunkKeyboard`, which routes hardware-keyboard
-  input (a probe keystroke goes live to the agent, then typing opens Blunkitor).
+  `.blink/snippets`, matching upstream); `BlunkKeyboard`, which routes hardware-keyboard
+  input (a probe keystroke goes live to the agent, then typing opens Blunkitor); and
+  **Blunkopy** (`BlunkopyView`), a read-only, keyboard-less snapshot of the terminal text
+  (via hterm `getRowsText`) for comfortable native select/copy — opened by a **long-press on
+  the terminal** or from the `⌃` pad's side column; copying hops you to the editor. Note: a
+  full-screen TUI on the *alternate screen* (e.g. Claude Code) keeps no terminal scrollback,
+  so Blunkopy only sees the visible view there — scroll the TUI to what you want, then snapshot.
 - `Blink/Blunkeys.swift` — **Blunkeys**, the floating round buttons on the main view: a left
   cluster of `⌃` / `123` / `abc` / `↕` pads (keys go live to the agent/TUI) plus `⏎`, and a
   separate, larger `✎` button on the right that opens Blunkitor. `blunkeyRoundButton` is the
@@ -103,9 +108,23 @@ behaviour lives in two new, self-contained files plus two tiny seams.
 |------|------|
 | `Blink/SmarterKeys/SmarterTermInput.swift` | `becomeFirstResponder()` returns `false` under `Blunk.scratchOnly` → the terminal never shows a keyboard. |
 | `Blink/SpaceController.swift` | `Blunkeys.install(in:)`; `canBecomeFirstResponder` + `viewDidAppear` become first responder (so chain-dispatched commands like `config` keep working while keyboard-less); `pressesBegan` hands hardware-keyboard input to `BlunkKeyboard`. |
+| `Blink/WebKit/WKWebView.swift` | `_onLongPress` opens **Blunkopy** on a terminal long-press under `Blunk.scratchOnly` (dispatched up the responder chain to `SpaceController.openBlunkopy`). |
+| `Resources/term.js` | `onTerminalReady`: (1) reset mouse-tracking when an app leaves the alternate screen (general bugfix); (2) disable native text selection (caret / loupe / long-press callout) so the terminal stays a clean read-only transcript — copying is via Blunkopy. These two are **not** flag-gated, so a full stock-Blink fallback also needs them reverted. |
 
-Everything is gated by `Blunk.scratchOnly` (in `Blunky.swift`). Set it to `false` to fall
-back to stock Blink input (on-terminal keyboard + SmartKeys bar).
+The Swift behaviour is gated by `Blunk.scratchOnly` (in `Blunky.swift`). Set it to `false`
+to fall back to stock Blink input (on-terminal keyboard + SmartKeys bar).
+
+### UI notes
+
+- **iOS 26 wraps bar-button items in a "glass" capsule.** A UIKit navigation bar on iOS 26
+  draws an automatic rounded background behind *every* `UIBarButtonItem` — including custom
+  views — so a plain label renders as a pill and a round button gets a lens-shaped ("cat's
+  eye") wrapper. To get a clean, unwrapped header, **don't use the nav bar**: hide it (or
+  present without a `UINavigationController`) and build your own header view. Blunkitor and
+  Blunkopy both do this.
+- **`blunkeyRoundButton()`** (in `Blunkeys.swift`) is the shared house button style — round,
+  light fill, dark glyph, soft shadow. Reuse it (or match it) for any Blunk button so the
+  app stays consistent; never ship the default blue tinted system button.
 
 ## Ideas / not done yet
 
