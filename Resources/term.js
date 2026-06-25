@@ -116,6 +116,26 @@ function term_setup(accessibilityEnabled) {
     term_setClipboardWrite(false);
 
     t.setCursorVisible(true);
+
+    // Blunk: when an app leaves the alternate screen, drop any mouse-tracking it left on,
+    // so a hard-killed full-screen TUI (e.g. ^C out of Claude) doesn't spew mouse reports
+    // at the shell when you scroll/tap. Mouse stays live while inside the alt screen.
+    var _blunkSetAlt = t.setAlternateMode.bind(t);
+    t.setAlternateMode = function(alt) {
+      _blunkSetAlt(alt);
+      if (!alt && t.vt) { t.vt.mouseReport = t.vt.MOUSE_REPORT_DISABLED; }
+    };
+
+    // Blunk: the terminal is a read-only transcript — copying happens in Blunkopy. Turn off
+    // native text selection (caret, loupe, long-press callout) so taps/long-press stay clean.
+    var _blunkScreen = t.scrollPort_.screen_;
+    if (_blunkScreen) {
+      var _blunkDoc = _blunkScreen.ownerDocument;
+      var _blunkStyle = _blunkDoc.createElement('style');
+      _blunkStyle.textContent = '*{-webkit-user-select:none!important;-webkit-touch-callout:none!important;}';
+      (_blunkDoc.head || _blunkDoc.documentElement).appendChild(_blunkStyle);
+    }
+
     t.io.onTerminalResize = function(cols, rows) {
       _postMessage('sigwinch', {cols, rows});
       if (t.prompt) {

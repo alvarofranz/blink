@@ -5,7 +5,7 @@
 // Floating round buttons on the main terminal view. Tapping one pops a clean centered
 // pad of real key buttons; each key fires LIVE to the agent/TUI on tap.
 //
-//   bottom-left:  ⌃ (special)  123 (numbers)  abc (letters)  ↕ (arrows)  ⏎ (direct Enter)
+//   bottom-left:  ⌃ (special keys + a Blunkopy/Settings column)  123  abc  ↕ (arrows)  ⏎ (Enter)
 //   bottom-right: ✎ (a larger button that opens Blunkitor)
 //
 // ⌃/123/abc auto-close after a key; the arrows d-pad stays open for repeated presses.
@@ -76,7 +76,9 @@ final class BlunkeysBar: UIStackView {
 
   private weak var spaceController: SpaceController?
   private let pad = BlunkeysPad()
+  private let padContainer = UIStackView()
   private let overlay = UIView()
+  private lazy var sideColumn = _makeSideColumn()
   private var shownKind: Kind?
 
   init(spaceController: SpaceController) {
@@ -86,7 +88,6 @@ final class BlunkeysBar: UIStackView {
     spacing = 10
     alignment = .center
 
-    pad.isHidden = true
     pad.onKey = { [weak self] bytes in
       guard let self else { return }
       self.spaceController?.currentDevice?.write(bytes)
@@ -135,7 +136,7 @@ final class BlunkeysBar: UIStackView {
   // The pad floats centered in the viewport, a comfortable gap above the buttons. A
   // transparent overlay behind it dismisses the pad when the terminal is tapped.
   private func _installPad() {
-    guard pad.superview == nil, let sv = superview else { return }
+    guard padContainer.superview == nil, let sv = superview else { return }
 
     overlay.translatesAutoresizingMaskIntoConstraints = false
     overlay.backgroundColor = .clear
@@ -143,8 +144,11 @@ final class BlunkeysBar: UIStackView {
     overlay.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(_overlayTapped)))
     sv.addSubview(overlay)
 
-    pad.translatesAutoresizingMaskIntoConstraints = false
-    sv.addSubview(pad)
+    padContainer.axis = .horizontal
+    padContainer.spacing = 14
+    padContainer.alignment = .center
+    padContainer.translatesAutoresizingMaskIntoConstraints = false
+    sv.addSubview(padContainer)
 
     NSLayoutConstraint.activate([
       overlay.topAnchor.constraint(equalTo: sv.topAnchor),
@@ -152,33 +156,94 @@ final class BlunkeysBar: UIStackView {
       overlay.trailingAnchor.constraint(equalTo: sv.trailingAnchor),
       overlay.bottomAnchor.constraint(equalTo: sv.bottomAnchor),
 
-      pad.centerXAnchor.constraint(equalTo: sv.centerXAnchor),
-      pad.bottomAnchor.constraint(equalTo: topAnchor, constant: -64),
+      padContainer.centerXAnchor.constraint(equalTo: sv.centerXAnchor),
+      padContainer.bottomAnchor.constraint(equalTo: topAnchor, constant: -64),
     ])
   }
 
   private func _showPad(_ kind: Kind) {
     _installPad()
     shownKind = kind
+
+    padContainer.arrangedSubviews.forEach {
+      padContainer.removeArrangedSubview($0)
+      $0.removeFromSuperview()
+    }
     if kind == .arrows { pad.configureArrows() }
     else { pad.configure(rows: Self._rows(for: kind), round: false) }
+
+    // Special keys come paired with a side column (Blunkopy + Settings) on the left.
+    if kind == .special { padContainer.addArrangedSubview(sideColumn) }
+    padContainer.addArrangedSubview(pad)
+
     overlay.isHidden = false
-    pad.isHidden = false
+    padContainer.isHidden = false
     if let sv = superview {
       sv.bringSubviewToFront(overlay)
       chrome.forEach { sv.bringSubviewToFront($0) }
       sv.bringSubviewToFront(self)
-      sv.bringSubviewToFront(pad)
+      sv.bringSubviewToFront(padContainer)
     }
   }
 
   private func _closePad() {
     shownKind = nil
-    pad.isHidden = true
+    padContainer.isHidden = true
     overlay.isHidden = true
   }
 
   @objc private func _overlayTapped() { _closePad() }
+
+  // Left-hand column shown next to the special keys: Blunkopy + Settings.
+  private func _makeSideColumn() -> UIView {
+    let box = UIView()
+    box.backgroundColor = UIColor(white: 0.97, alpha: 0.97)
+    box.layer.cornerRadius = 18
+    box.layer.shadowColor = UIColor.black.cgColor
+    box.layer.shadowOpacity = 0.22
+    box.layer.shadowRadius = 9
+    box.layer.shadowOffset = CGSize(width: 0, height: 3)
+
+    let stack = UIStackView(arrangedSubviews: [
+      _actionButton("Blunkopy", "doc.on.doc") { [weak self] in self?.spaceController?.openBlunkopy() },
+      _actionButton("Settings", "gearshape") { [weak self] in self?.spaceController?.openSettings() },
+    ])
+    stack.axis = .vertical
+    stack.spacing = 8
+    stack.alignment = .fill
+    stack.translatesAutoresizingMaskIntoConstraints = false
+    box.addSubview(stack)
+    NSLayoutConstraint.activate([
+      stack.topAnchor.constraint(equalTo: box.topAnchor, constant: 12),
+      stack.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 12),
+      stack.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -12),
+      stack.bottomAnchor.constraint(equalTo: box.bottomAnchor, constant: -12),
+    ])
+    return box
+  }
+
+  private func _actionButton(_ title: String, _ systemImage: String, action: @escaping () -> Void) -> UIButton {
+    var config = UIButton.Configuration.plain()
+    config.image = UIImage(systemName: systemImage, withConfiguration: UIImage.SymbolConfiguration(pointSize: 17, weight: .regular))
+    config.imagePlacement = .top
+    config.imagePadding = 5
+    config.baseForegroundColor = UIColor(white: 0.12, alpha: 1)
+    config.background.backgroundColor = .white
+    config.background.cornerRadius = 12
+    config.background.strokeColor = UIColor(white: 0.82, alpha: 1)
+    config.background.strokeWidth = 0.5
+    config.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 6, bottom: 9, trailing: 6)
+    var titleAttr = AttributeContainer()
+    titleAttr.font = .systemFont(ofSize: 11, weight: .medium)
+    config.attributedTitle = AttributedString(title, attributes: titleAttr)
+
+    let b = UIButton(configuration: config)
+    b.addAction(UIAction { _ in action() }, for: .touchUpInside)
+    b.translatesAutoresizingMaskIntoConstraints = false
+    b.widthAnchor.constraint(equalToConstant: 74).isActive = true
+    b.heightAnchor.constraint(equalToConstant: 56).isActive = true
+    return b
+  }
 
   private static func _rows(for kind: Kind) -> [[(String, String)?]] {
     switch kind {
@@ -196,10 +261,10 @@ final class BlunkeysBar: UIStackView {
       ]
     case .special:
       return [
-        [("Esc", "\u{1B}"), ("Tab", "\t"), ("^Y", "\u{19}"), ("^C", "\u{03}")],
-        [("^D", "\u{04}"), ("^Z", "\u{1A}"), ("^L", "\u{0C}"), ("^R", "\u{12}")],
+        [("Esc", "\u{1B}"), ("Tab", "\t"), ("␣", " "), ("^C", "\u{03}")],
+        [("^D", "\u{04}"), ("^R", "\u{12}"), ("^L", "\u{0C}"), ("^Z", "\u{1A}")],
         [("^A", "\u{01}"), ("^E", "\u{05}"), ("^K", "\u{0B}"), ("^U", "\u{15}")],
-        [("^W", "\u{17}"), ("^P", "\u{10}"), ("^N", "\u{0E}"), ("⌫", "\u{7F}")],
+        [("^W", "\u{17}"), ("^P", "\u{10}"), ("^N", "\u{0E}"), ("^G", "\u{07}")],
       ]
     case .arrows:
       return [

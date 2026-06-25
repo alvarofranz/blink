@@ -561,6 +561,141 @@ extension SpaceController {
     }
     present(nav, animated: true)
   }
+
+  // Blunkopy: snapshot the last N lines of the terminal (screen + scrollback) and open them
+  // in a read-only, keyboard-less view where iOS selection/copy is comfortable — works even
+  // inside a mouse-reporting TUI, because we copy the rendered text, not live taps.
+  @objc func openBlunkopy() {
+    view.subviews.compactMap({ $0 as? BlunkeysBar }).first?.closeIfOpen()
+    guard presentedViewController == nil, let webView = currentDevice?.view?.webView else { return }
+    let js = "(function(){try{return t.getRowsText(0,t.getRowCount());}catch(e){return '';}})()"
+    webView.evaluateJavaScript(js) { [weak self] result, _ in
+      guard let self else { return }
+      let vc = BlunkopyView(text: (result as? String) ?? "", onCompose: { [weak self] in self?.openBlunkitor() })
+      vc.modalPresentationStyle = .pageSheet
+      if let sheet = vc.sheetPresentationController {
+        sheet.detents = [.large()]
+        sheet.prefersGrabberVisible = true
+      }
+      self.present(vc, animated: true)
+    }
+  }
+
+  // Settings = Blink's own config screen (same as the `config` command), so everything
+  // lives in one place.
+  func openSettings() {
+    view.subviews.compactMap({ $0 as? BlunkeysBar }).first?.closeIfOpen()
+    showConfigAction()
+  }
+}
+
+// MARK: - Blunkopy: the copy-only reader
+
+// A read-only text view that notices a native Copy, so we can hop to the editor afterwards.
+final class BlunkopyTextView: UITextView {
+  var onCopied: (() -> Void)?
+  override func copy(_ sender: Any?) {
+    super.copy(sender)
+    onCopied?()
+  }
+}
+
+final class BlunkopyView: UIViewController {
+
+  private let textView = BlunkopyTextView()
+  private let bodyText: String
+  private let onCompose: () -> Void
+
+  init(text: String, onCompose: @escaping () -> Void) {
+    self.bodyText = text
+    self.onCompose = onCompose
+    super.init(nibName: nil, bundle: nil)
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .systemBackground
+    let isEmpty = bodyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+    // Custom header — no UIKit nav bar, so no iOS capsule wrappers around text/button.
+    let label = UILabel()
+    label.text = isEmpty ? "Nothing in your terminal:" : "Copy stuff from current view:"
+    label.font = .systemFont(ofSize: 16, weight: .bold)
+    label.textColor = .label
+    label.translatesAutoresizingMaskIntoConstraints = false
+
+    let closeButton = _closeButton()
+
+    let header = UIView()
+    header.translatesAutoresizingMaskIntoConstraints = false
+    header.addSubview(label)
+    header.addSubview(closeButton)
+    view.addSubview(header)
+
+    // Read-only + selectable = native iOS selection/copy, and crucially NO keyboard.
+    textView.isEditable = false
+    textView.isSelectable = !isEmpty
+    if isEmpty {
+      textView.text = "Blunkopy snapshots whatever your terminal is showing right now, so you can select and copy it the comfortable way — even from inside a full-screen TUI like Claude.\n\nScroll the terminal to what you want to see, then open Blunkopy. Copying hops you straight to the editor."
+      textView.font = .systemFont(ofSize: 15)
+      textView.textColor = .secondaryLabel
+    } else {
+      textView.text = bodyText
+      textView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+    }
+    textView.autocorrectionType = .no
+    textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+    textView.alwaysBounceVertical = true
+    textView.onCopied = { [weak self] in self?._goToEditor() }   // copy → straight to the editor
+    textView.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(textView)
+
+    NSLayoutConstraint.activate([
+      header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 6),
+      header.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+      header.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+      header.heightAnchor.constraint(equalToConstant: 44),
+
+      label.leadingAnchor.constraint(equalTo: header.leadingAnchor),
+      label.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+
+      closeButton.trailingAnchor.constraint(equalTo: header.trailingAnchor),
+      closeButton.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+
+      textView.topAnchor.constraint(equalTo: header.bottomAnchor, constant: 4),
+      textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      textView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      textView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+    ])
+  }
+
+  @objc private func close() { dismiss(animated: true) }
+
+  // Close button in the house Blunkeys style (round, dark, light bg) — a plain circle.
+  private func _closeButton() -> UIButton {
+    let b = UIButton(type: .system)
+    b.translatesAutoresizingMaskIntoConstraints = false
+    b.tintColor = UIColor(white: 0.12, alpha: 1)
+    b.backgroundColor = UIColor(white: 0.97, alpha: 0.92)
+    b.layer.cornerRadius = 20
+    b.layer.shadowColor = UIColor.black.cgColor
+    b.layer.shadowOpacity = 0.18
+    b.layer.shadowRadius = 4
+    b.layer.shadowOffset = CGSize(width: 0, height: 1)
+    b.setImage(UIImage(systemName: "xmark"), for: .normal)
+    b.widthAnchor.constraint(equalToConstant: 40).isActive = true
+    b.heightAnchor.constraint(equalToConstant: 40).isActive = true
+    b.addAction(UIAction { [weak self] _ in self?.close() }, for: .touchUpInside)
+    return b
+  }
+
+  // Hop to Blunkitor — the unsent draft is preserved, and the Paste button is right there.
+  private func _goToEditor() {
+    let go = onCompose
+    dismiss(animated: true) { go() }
+  }
 }
 
 // MARK: - Hardware keyboard routing (Bluetooth)

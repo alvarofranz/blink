@@ -305,6 +305,15 @@ class UIScrollViewWithoutHitTest: UIScrollView {
   }
 
   @objc func _onLongPress(_ recognizer: UILongPressGestureRecognizer) {
+    if Blunk.scratchOnly {
+      // A long-press on the read-only terminal opens Blunkopy for comfortable select/copy.
+      if recognizer.state == .began,
+         let target = _wkWebView?.target(forAction: NSSelectorFromString("openBlunkopy"), withSender: self) as? UIResponder {
+        target.perform(NSSelectorFromString("openBlunkopy"), with: self)
+      }
+      return
+    }
+
     guard focused else {
       return
     }
