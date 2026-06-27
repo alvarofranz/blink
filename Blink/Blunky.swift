@@ -587,6 +587,13 @@ extension SpaceController {
     view.subviews.compactMap({ $0 as? BlunkeysBar }).first?.closeIfOpen()
     showConfigAction()
   }
+
+  // Blink's Quick Actions menu (new/close tab, snippets, layout, lock) — normally hidden
+  // behind a double-tap at the bottom of the screen; surfaced here as a visible button.
+  func openQuickActions() {
+    view.subviews.compactMap({ $0 as? BlunkeysBar }).first?.closeIfOpen()
+    toggleQuickActionsAction()
+  }
 }
 
 // MARK: - Blunkopy: the copy-only reader

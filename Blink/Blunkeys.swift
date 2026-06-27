@@ -5,7 +5,7 @@
 // Floating round buttons on the main terminal view. Tapping one pops a clean centered
 // pad of real key buttons; each key fires LIVE to the agent/TUI on tap.
 //
-//   bottom-left:  ⌃ (special keys + a Blunkopy/Settings column)  123  abc  ↕ (arrows)  ⏎ (Enter)
+//   bottom-left:  ⌃ (special keys + a Blunkopy/Tabs/Settings column)  123  abc  ↕ (arrows)  ⏎ (Enter)
 //   bottom-right: ✎ (a larger button that opens Blunkitor)
 //
 // ⌃/123/abc auto-close after a key; the arrows d-pad stays open for repeated presses.
@@ -172,7 +172,7 @@ final class BlunkeysBar: UIStackView {
     if kind == .arrows { pad.configureArrows() }
     else { pad.configure(rows: Self._rows(for: kind), round: false) }
 
-    // Special keys come paired with a side column (Blunkopy + Settings) on the left.
+    // Special keys come paired with a side column (Blunkopy + Tabs + Settings) on the left.
     if kind == .special { padContainer.addArrangedSubview(sideColumn) }
     padContainer.addArrangedSubview(pad)
 
@@ -194,7 +194,7 @@ final class BlunkeysBar: UIStackView {
 
   @objc private func _overlayTapped() { _closePad() }
 
-  // Left-hand column shown next to the special keys: Blunkopy + Settings.
+  // Left-hand column shown next to the special keys: Blunkopy + Tabs + Settings.
   private func _makeSideColumn() -> UIView {
     let box = UIView()
     box.backgroundColor = UIColor(white: 0.97, alpha: 0.97)
@@ -206,6 +206,7 @@ final class BlunkeysBar: UIStackView {
 
     let stack = UIStackView(arrangedSubviews: [
       _actionButton("Blunkopy", "doc.on.doc") { [weak self] in self?.spaceController?.openBlunkopy() },
+      _actionButton("Tabs", "rectangle.stack") { [weak self] in self?.spaceController?.openQuickActions() },
       _actionButton("Settings", "gearshape") { [weak self] in self?.spaceController?.openSettings() },
     ])
     stack.axis = .vertical
